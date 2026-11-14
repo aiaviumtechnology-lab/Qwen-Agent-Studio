@@ -59,3 +59,4 @@ ${report.unifiedDiff || 'No changes required. All invariants verified.'}
                 body
               });
             }
+

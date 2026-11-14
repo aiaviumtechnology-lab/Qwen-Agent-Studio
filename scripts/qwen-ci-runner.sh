@@ -48,3 +48,4 @@ curl -s -X POST "${ENDPOINT}/api/agent/analyze" \
 
 echo "[*] Autonomous audit report saved to: ${OUTPUT_FILE}"
 exit 0
+

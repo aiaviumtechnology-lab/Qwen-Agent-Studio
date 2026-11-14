@@ -213,3 +213,4 @@ export const ClosedLoopVerification: React.FC<ClosedLoopVerificationProps> = ({
     </div>
   );
 };
+
