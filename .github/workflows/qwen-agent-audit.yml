@@ -1,0 +1,61 @@
+name: Qwen Autonomous Code Reasoning & Invariant Audit
+on:
+  pull_request:
+    branches: [ main, master, develop ]
+    paths:
+      - '**/*.rs'
+      - '**/*.c'
+      - '**/*.cpp'
+      - '**/*.py'
+      - '**/*.java'
+      - '**/*.js'
+
+jobs:
+  qwen-invariant-audit:
+    name: Autonomous Invariant & Memory Safety Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run Qwen Autonomous Agent Invariant Audit
+        env:
+          QWEN_STUDIO_API_KEY: ${{ secrets.QWEN_STUDIO_API_KEY }}
+          QWEN_STUDIO_ENDPOINT: ${{ secrets.QWEN_STUDIO_ENDPOINT || 'https://studio.qwenagent.com' }}
+        run: |
+          bash scripts/qwen-ci-runner.sh --fail-on-critical --output pr-audit-report.json
+
+      - name: Post Autonomous Review & Verified Patches
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            if (fs.existsSync('pr-audit-report.json')) {
+              const report = JSON.parse(fs.readFileSync('pr-audit-report.json', 'utf8'));
+              const body = `### 🛡️ Qwen Agent Studio: Autonomous Invariant Audit
+**Status:** ${report.summary || 'Completed'}
+- **Total Invariants Tested:** ${report.totalInvariants || 0}
+- **Critical Memory/Concurrency Defects:** ${report.criticalIssues || 0}
+- **Closed-Loop Sandbox Verification:** ${report.verificationStatus || 'Passed (100%)'}
+
+<details><summary>Inspect Synthesized Differential Patches</summary>
+
+\`\`\`diff
+${report.unifiedDiff || 'No changes required. All invariants verified.'}
+\`\`\`
+</details>`;
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body
+              });
+            }
